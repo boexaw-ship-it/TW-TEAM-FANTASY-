@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch: # Actions tab မှ လက်ဖြင့် နှိပ်၍ အချိန်မရွေး Deploy စမ်းသပ်နိုင်ရန်
 
 jobs:
   deploy_to_hosting:
