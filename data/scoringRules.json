@@ -1,0 +1,23 @@
+{
+  "goalPoints": {
+    "GK": 8,
+    "DEF": 6,
+    "MID": 4,
+    "FWD": 3
+  },
+  "cleanSheetPoints": {
+    "GK": 6,
+    "DEF": 6,
+    "MID": 0,
+    "FWD": 0
+  },
+  "disciplinePenalties": {
+    "redCard": -6,
+    "yellowCard": -4,
+    "ownGoal": -5
+  },
+  "transferCost": -5,
+  "maxFreeTransfers": 6,
+  "weeklyFreeTransfers": 2,
+  "startingBudget": 105.0
+}
