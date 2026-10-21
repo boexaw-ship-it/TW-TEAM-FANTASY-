@@ -1,0 +1,22 @@
+[
+  { "id": 1, "code": "ARS", "name": "Arsenal", "price": 8.0, "win": 12, "draw": 2, "lose": -8 },
+  { "id": 2, "code": "AVL", "name": "Aston Villa", "price": 5.5, "win": 15, "draw": 4, "lose": -5 },
+  { "id": 3, "code": "BOU", "name": "Bournemouth", "price": 4.0, "win": 17, "draw": 5, "lose": -4 },
+  { "id": 4, "code": "BRE", "name": "Brentford", "price": 5.5, "win": 15, "draw": 4, "lose": -5 },
+  { "id": 5, "code": "BHA", "name": "Brighton", "price": 7.0, "win": 13, "draw": 3, "lose": -7 },
+  { "id": 6, "code": "CHE", "name": "Chelsea", "price": 7.0, "win": 13, "draw": 3, "lose": -7 },
+  { "id": 7, "code": "COV", "name": "Coventry", "price": 3.5, "win": 18, "draw": 6, "lose": -3 },
+  { "id": 8, "code": "CRY", "name": "Crystal Palace", "price": 4.5, "win": 16, "draw": 5, "lose": -4 },
+  { "id": 9, "code": "EVE", "name": "Everton", "price": 5.5, "win": 15, "draw": 4, "lose": -5 },
+  { "id": 10, "code": "FUL", "name": "Fulham", "price": 3.5, "win": 18, "draw": 6, "lose": -3 },
+  { "id": 11, "code": "HUL", "name": "Hull", "price": 5.0, "win": 16, "draw": 4, "lose": -5 },
+  { "id": 12, "code": "IPS", "name": "Ipswich", "price": 5.0, "win": 16, "draw": 4, "lose": -5 },
+  { "id": 13, "code": "LEE", "name": "Leeds", "price": 5.5, "win": 15, "draw": 4, "lose": -5 },
+  { "id": 14, "code": "LIV", "name": "Liverpool", "price": 7.5, "win": 12, "draw": 2, "lose": -8 },
+  { "id": 15, "code": "MCI", "name": "Man City", "price": 9.0, "win": 11, "draw": 1, "lose": -9 },
+  { "id": 16, "code": "MUN", "name": "Man United", "price": 5.0, "win": 16, "draw": 4, "lose": -5 },
+  { "id": 17, "code": "NEW", "name": "Newcastle", "price": 5.5, "win": 15, "draw": 4, "lose": -5 },
+  { "id": 18, "code": "NFO", "name": "Nottingham Forest", "price": 3.5, "win": 18, "draw": 6, "lose": -3 },
+  { "id": 19, "code": "TOT", "name": "Tottenham", "price": 4.5, "win": 16, "draw": 5, "lose": -4 },
+  { "id": 20, "code": "SUN", "name": "Sunderland", "price": 3.0, "win": 19, "draw": 6, "lose": -2 }
+]
