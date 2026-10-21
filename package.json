@@ -1,0 +1,11 @@
+{
+  "name": "tw-team-fantasy",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "seed": "node scripts/seed380Fixtures.js"
+  },
+  "dependencies": {
+    "firebase": "^10.12.0"
+  }
+}
