@@ -1,7 +1,7 @@
 name: Seed 380 Fixtures to Firebase Firestore
 
 on:
-  workflow_dispatch: # GitHub Action tab ကနေ "Run workflow" ခလုတ်နှိပ်ပြီး ကိုယ်တိုင် အချိန်မရွေး မောင်းနှင်နိုင်သည်
+  workflow_dispatch:
 
 jobs:
   seed-database:
@@ -20,7 +20,9 @@ jobs:
         run: |
           npm init -y
           npm pkg set type="module"
-          npm install firebase
+          npm install firebase firebase-admin
 
       - name: Run 380 Fixtures Seeding Script
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TW_TEAM_FANTASY }}
         run: node scripts/seed380Fixtures.js
