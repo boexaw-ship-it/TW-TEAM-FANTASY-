@@ -2,8 +2,7 @@ import { initializeApp } from "firebase/app";
 import { 
   getFirestore, 
   writeBatch, 
-  doc, 
-  collection 
+  doc 
 } from "firebase/firestore";
 
 // Firebase Config
@@ -79,7 +78,7 @@ function createFixtureObject(gw, home, away) {
     homeClub: home,
     awayClub: away,
     status: "UPCOMING", // UPCOMING, LIVE, FINISHED
-    kickoffTime: new Date(Date.UTC(2026, 7, 15 + gw * 7, 14, 0, 0)).toISOString(), // နမူနာစတင်ချိန်
+    kickoffTime: new Date(Date.UTC(2026, 7, 15 + gw * 7, 14, 0, 0)).toISOString(),
     
     // ရလဒ်နှင့် ဂိုးများ
     homeScore: null,
@@ -110,26 +109,27 @@ function createFixtureObject(gw, home, away) {
 }
 
 /**
- * Firestore ထဲသို့ Batch ဖြင့် အကုန်မောင်းထည့်ခြင်း (Firestore batch limit သည် 500 ဖြစ်သဖြင့် ပွဲ ၃၈၀ ကို ခွဲသွင်းမည်)
+ * Firestore ထဲသို့ Batch ဖြင့် အကုန်မောင်းထည့်ခြင်း
  */
 async function seedAllFixtures() {
   console.log("🚀 Premier League ပွဲစဉ် ၃၈၀ စတင်ဖန်တီးနေပါသည်...");
   const fixtures = generate380Fixtures();
-  console.log(`✅ စုစုပေါင်းပွဲစဉ်: ${fixtures.length} ပွဲ ဖန်တီးပြီးပါပြီ။`);
+  console.log(`✅ စုစုပေါင်းပွဲစဉ်: ${fixtures.length} ပွဲ ထွက်ပေါ်လာပါပြီ။`);
 
   // ၁။ System Game Settings Document သတ်မှတ်ခြင်း (Current Gameweek 1)
+  console.log("⚙️  Game Config (Current Gameweek: 1) ကို စတင်သွင်းနေပါသည်...");
   const configRef = doc(db, "settings", "gameConfig");
   const configBatch = writeBatch(db);
   configBatch.set(configRef, {
     currentGW: 1,
     currentSeason: "2026/27",
     deadline: new Date(Date.UTC(2026, 7, 15, 12, 30, 0)).toISOString(),
-    status: "OPEN", // OPEN, IN_PROGRESS, CLOSED
+    status: "OPEN",
     chipsActivePeriod: "GW1_19",
     totalGameweeks: 38
   });
   await configBatch.commit();
-  console.log("⚙️  Game Config (Current Gameweek: 1) ကို Firestore ထဲ သွင်းပြီးပါပြီ။");
+  console.log("✅ Game Config သွင်းပြီးပါပြီ။");
 
   // ၂။ Fixtures ၃၈၀ ကို Batch (၁၀၀ ပွဲစီ) ခွဲသွင်းခြင်း
   const chunkSize = 100;
@@ -146,8 +146,16 @@ async function seedAllFixtures() {
     console.log(`📦 Fixtures ${i + 1} မှ ${Math.min(i + chunkSize, fixtures.length)} အထိ သွင်းပြီးပါပြီ။`);
   }
 
-  console.log("🎉 အောင်မြင်ပါသည်! ပွဲစဉ် ၃၈၀ လုံးနှင့် Gameweek Settings များ Firestore ထဲ အပြည့်အစုံ ရောက်ရှိသွားပါပြီ။");
+  console.log("🎉 အောင်မြင်ပါသည်! ပွဲစဉ် ၃၈၀ လုံး Firestore ထဲ အပြည့်အစုံ ရောက်ရှိသွားပါပြီ။");
 }
 
-// Execute Script
-seedAllFixtures().catch(console.error);
+// Execute Script with Proper Process Exit
+seedAllFixtures()
+  .then(() => {
+    console.log("🏁 Process Finished Successfully.");
+    process.exit(0);
+  })
+  .catch((err) => {
+    console.error("❌ Seeding Failed with Error:", err);
+    process.exit(1);
+  });
