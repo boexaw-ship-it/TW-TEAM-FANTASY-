@@ -1,11 +1,8 @@
 name: TW Fantasy Fixtures & GW Auto Sync
 
 on:
-  # ၁။ မိနစ် ၃၀ တိုင်း အလိုအလျောက် ပွဲရလဒ်နှင့် အမှတ်များ Sync ပြုလုပ်ခြင်း
   schedule:
     - cron: '*/30 * * * *'
-  
-  # ၂။ GitHub Actions Tab မှ "Run workflow" ခလုတ်နှိပ်၍ လက်ဖြင့် စမ်းသပ်နိုင်ရန်
   workflow_dispatch:
 
 jobs:
@@ -23,10 +20,14 @@ jobs:
 
       - name: 📦 Install Required Packages
         run: |
-          npm install firebase-admin axios
+          npm install firebase-admin axios firebase
 
-      - name: 🚀 Run Fixtures & Gameweek Sync Script
+      - name: 🚀 Step 1: Sync Official FPL Fixtures to Firebase
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_TW_TEAM_FANTASY }}
         run: |
           node scripts/syncFixtures.js
+
+      - name: 📊 Step 2: Calculate Contestant Scores
+        run: |
+          node scripts/calculateUserScores.js
