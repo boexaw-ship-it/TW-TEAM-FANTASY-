@@ -1,0 +1,29 @@
+name: "3 - Calculate Contestant Fantasy Scores"
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+
+jobs:
+  calculate-scores:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Packages
+        run: |
+          npm install firebase-admin
+
+      - name: Run Contestant Score Calculator
+        env:
+          FIREBASE_SERVICE_ACCOUNT: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TW_TEAM_FANTASY }}"
+        run: |
+          node scripts/calculateScores.js
