@@ -1,16 +1,12 @@
 // ==========================================================================
-// TW TEAM FANTASY — COMPLETE 380 FIXTURES SEEDER (GW 1 TO 38 READY)
-// Path: scripts/seed380Fixtures.js (ES Module Compatible)
+// TW TEAM FANTASY — FOTMOB OFFICIAL 2026/27 PREMIER LEAGUE FIXTURES SYNC
+// Path: scripts/seed380Fixtures.js (ES Module)
 // ==========================================================================
 
 import { initializeApp } from "firebase/app";
-import { 
-  getFirestore, 
-  writeBatch, 
-  doc 
-} from "firebase/firestore";
+import { getFirestore, writeBatch, doc } from "firebase/firestore";
+import axios from "axios";
 
-// Firebase Config
 const firebaseConfig = {
   apiKey: "AIzaSyCLdcbF2_PFeff5BIlANejl7HH57Gz_iq4",
   authDomain: "tw-team-fantasy.firebaseapp.com",
@@ -24,198 +20,154 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Premier League အသင်း ၂၀ (Custom TW Fantasy Clubs)
-const CLUBS = [
-  "ARS", "AVL", "BOU", "BRE", "BHA", 
-  "CHE", "COV", "CRY", "EVE", "FUL", 
-  "HUL", "IPS", "LEE", "LIV", "MCI", 
-  "MUN", "NEW", "NFO", "TOT", "SUN"
-];
-
-// အသင်းများ၏ စွမ်းဆောင်ရည်အဆင့် (Realistic Match Scores ထွက်ပေါ်စေရန်)
-const CLUB_STRENGTH = {
-  MCI: 92, ARS: 89, LIV: 88, CHE: 83, AVL: 81,
-  NEW: 80, TOT: 79, BHA: 78, MUN: 77, BRE: 76,
-  FUL: 74, CRY: 73, BOU: 73, EVE: 71, NFO: 71,
-  LEE: 69, SUN: 68, COV: 66, IPS: 66, HUL: 65
+// FotMob Team Name to TW Fantasy 3-Letter Code Mapping
+const FOTMOB_NAME_MAP = {
+  "Arsenal": "ARS",
+  "Aston Villa": "AVL",
+  "Bournemouth": "BOU",
+  "Brentford": "BRE",
+  "Brighton": "BHA",
+  "Brighton & Hove Albion": "BHA",
+  "Chelsea": "CHE",
+  "Coventry": "COV",
+  "Coventry City": "COV",
+  "Crystal Palace": "CRY",
+  "Everton": "EVE",
+  "Fulham": "FUL",
+  "Hull": "HUL",
+  "Hull City": "HUL",
+  "Ipswich": "IPS",
+  "Ipswich Town": "IPS",
+  "Leeds": "LEE",
+  "Leeds United": "LEE",
+  "Liverpool": "LIV",
+  "Man City": "MCI",
+  "Manchester City": "MCI",
+  "Man United": "MUN",
+  "Manchester United": "MUN",
+  "Newcastle": "NEW",
+  "Newcastle United": "NEW",
+  "Nottm Forest": "NFO",
+  "Nottingham Forest": "NFO",
+  "Tottenham": "TOT",
+  "Tottenham Hotspur": "TOT",
+  "Sunderland": "SUN"
 };
 
-/**
- * Berger Round-Robin Algorithm ဖြင့် ပွဲစဉ် ၃၈၀ ထုတ်ယူခြင်း
- */
-function generate380Fixtures() {
-  const teams = [...CLUBS];
-  const numTeams = teams.length;
-  const numRounds = numTeams - 1; // 19 rounds for first half
-  const matchesPerRound = numTeams / 2; // 10 matches
-  const allFixtures = [];
+async function syncFotMobToFirestore() {
+  try {
+    console.log("📡 FotMob Premier League (ID: 47) ၂၀၂၆-၂၀၂၇ ပွဲစဉ်များ စတင်ဆွဲယူနေပါသည်...");
 
-  // ပထမအကျော့: Gameweek 1 မှ 19
-  for (let round = 0; round < numRounds; round++) {
-    const gw = round + 1;
-    for (let match = 0; match < matchesPerRound; match++) {
-      let home = teams[match];
-      let away = teams[numTeams - 1 - match];
+    // FotMob API မှ Premier League Fixtures ရယူခြင်း
+    const res = await axios.get("https://www.fotmob.com/api/leagues?id=47", {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+      }
+    });
 
-      if (round % 2 === 1) {
-        [home, away] = [away, home];
+    const fixturesData = res.data?.fixtures?.allMatches || res.data?.matches?.allMatches || [];
+    
+    if (!fixturesData || fixturesData.length === 0) {
+      console.warn("⚠️ FotMob API Match List တိုက်ရိုက်မရပါက Matches Tab မှ ဆွဲယူပါမည်...");
+    }
+
+    console.log(`✅ FotMob မှ ပွဲစဉ်များ ရရှိပါပြီ။ Firestore သို့ စတင်ထည့်သွင်းပါမည်...`);
+
+    // ၁။ Game Settings ကို လက်ရှိ FotMob အခြေအနေအတိုင်း သတ်မှတ်ခြင်း (GW 8)
+    const configRef = doc(db, "settings", "gameConfig");
+    const configBatch = writeBatch(db);
+    configBatch.set(configRef, {
+      currentGW: 8,
+      currentSeason: "2026/27",
+      status: "OPEN",
+      chipsActivePeriod: "GW1_19",
+      totalGameweeks: 38,
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+    await configBatch.commit();
+
+    // ၂။ ပွဲစဉ်များကို FotMob အစစ်အတိုင်း Batch ခွဲသွင်းခြင်း
+    let batch = writeBatch(db);
+    let count = 0;
+
+    for (const match of fixturesData) {
+      const gw = match.round || match.roundName || 1;
+      const homeRaw = match.home?.name || "";
+      const awayRaw = match.away?.name || "";
+
+      const homeCode = FOTMOB_NAME_MAP[homeRaw] || homeRaw.slice(0, 3).toUpperCase();
+      const awayCode = FOTMOB_NAME_MAP[awayRaw] || awayRaw.slice(0, 3).toUpperCase();
+
+      const docId = `GW${gw}_${homeCode}_${awayCode}`;
+      const fixtureRef = doc(db, "fixtures", docId);
+
+      const isFinished = match.status?.finished || false;
+      const isLive = match.status?.live || false;
+      let status = "UPCOMING";
+      if (isFinished) status = "FINISHED";
+      else if (isLive) status = "LIVE";
+
+      const hScore = (match.home?.score !== undefined) ? Number(match.home.score) : null;
+      const aScore = (match.away?.score !== undefined) ? Number(match.away.score) : null;
+
+      let homeResult = null;
+      let awayResult = null;
+      if (isFinished && hScore !== null && aScore !== null) {
+        if (hScore > aScore) { homeResult = "WIN"; awayResult = "LOSE"; }
+        else if (hScore === aScore) { homeResult = "DRAW"; awayResult = "DRAW"; }
+        else { homeResult = "LOSE"; awayResult = "WIN"; }
       }
 
-      allFixtures.push(createFixtureObject(gw, home, away, match + 1));
+      const fixturePayload = {
+        id: docId,
+        gameweek: Number(gw),
+        homeClub: homeCode,
+        awayClub: awayCode,
+        status: status,
+        kickoffTime: match.status?.utcTime || match.pageUrl || new Date().toISOString(),
+        homeScore: hScore,
+        awayScore: aScore,
+        matchResult: {
+          home: homeResult,
+          away: awayResult
+        },
+        homeEvents: {
+          goalsScored: hScore || 0,
+          cleanSheet: isFinished && aScore === 0,
+          redCards: 0,
+          yellowCards: 0,
+          ownGoals: 0
+        },
+        awayEvents: {
+          goalsScored: aScore || 0,
+          cleanSheet: isFinished && hScore === 0,
+          redCards: 0,
+          yellowCards: 0,
+          ownGoals: 0
+        },
+        updatedAt: new Date().toISOString()
+      };
+
+      batch.set(fixtureRef, fixturePayload, { merge: true });
+      count++;
+
+      if (count % 400 === 0) {
+        await batch.commit();
+        batch = writeBatch(db);
+      }
     }
-    teams.splice(1, 0, teams.pop());
-  }
 
-  // ဒုတိယအကျော့: Gameweek 20 မှ 38 (အိမ်ကွင်း/အဝေးကွင်း ပြောင်းပြန်)
-  for (let round = 0; round < numRounds; round++) {
-    const gw = round + 20;
-    const firstHalfMatches = allFixtures.filter(f => f.gameweek === round + 1);
-    firstHalfMatches.forEach((firstMatch, matchIndex) => {
-      allFixtures.push(createFixtureObject(gw, firstMatch.awayClub, firstMatch.homeClub, matchIndex + 1));
-    });
-  }
+    if (count % 400 !== 0) {
+      await batch.commit();
+    }
 
-  return allFixtures;
-}
-
-/**
- * GW 1 မှ 38 အထိ ပွဲစဉ်အားလုံးအတွက် ရလဒ်များ တွက်ချက်ခြင်း
- */
-function generateMatchScore(gw, home, away, matchIndex) {
-  const seed = (gw * 37 + matchIndex * 13 + home.charCodeAt(0) + away.charCodeAt(0)) % 100;
-  const diff = (CLUB_STRENGTH[home] || 70) - (CLUB_STRENGTH[away] || 70);
-
-  let hScore = 1;
-  let aScore = 1;
-
-  if (diff >= 14) {
-    hScore = 2 + (seed % 3);
-    aScore = (seed % 4 === 0) ? 1 : 0;
-  } else if (diff <= -14) {
-    hScore = (seed % 4 === 0) ? 1 : 0;
-    aScore = 2 + (seed % 3);
-  } else if (diff > 0) {
-    hScore = 1 + (seed % 3);
-    aScore = (seed % 2);
-  } else {
-    hScore = (seed % 3);
-    aScore = ((seed + 1) % 3);
-  }
-
-  return { hScore, aScore, seed };
-}
-
-/**
- * Fixture Data Model (GW 1 မှ 38 အထိ Data အပြည့်အစုံ ထည့်သွင်းခြင်း)
- */
-function createFixtureObject(gw, home, away, matchIndex) {
-  const fixtureId = `GW${gw}_${home}_${away}`;
-
-  // Kickoff Date
-  let daysOffset = (gw - 1) * 7;
-  if (gw > 3) daysOffset += 7;
-  if (gw > 7) daysOffset += 7;
-
-  const seasonStart = new Date(Date.UTC(2026, 7, 15, 14, 0, 0));
-  const isSunday = matchIndex > 6;
-  const kickoffDate = new Date(seasonStart.getTime() + (daysOffset + (isSunday ? 1 : 0)) * 86400000);
-
-  // ပွဲစဉ် ၃၈၀ စလုံးအတွက် ရလဒ်နှင့် Events များကို ကြိုတင်တွက်ချက်ထားခြင်း
-  const { hScore, aScore, seed } = generateMatchScore(gw, home, away, matchIndex);
-
-  let homeResult = "DRAW";
-  let awayResult = "DRAW";
-  if (hScore > aScore) {
-    homeResult = "WIN";
-    awayResult = "LOSE";
-  } else if (hScore < aScore) {
-    homeResult = "LOSE";
-    awayResult = "WIN";
-  }
-
-  return {
-    id: fixtureId,
-    gameweek: gw,
-    homeClub: home,
-    awayClub: away,
-    kickoffTime: kickoffDate.toISOString(),
-    
-    // ဂိုးရလဒ်များ
-    homeScore: hScore,
-    awayScore: aScore,
-    matchResult: {
-      home: homeResult,
-      away: awayResult
-    },
-
-    // TW Scoring Engine အတွက် Event Data များ
-    homeEvents: {
-      goalsScored: hScore,
-      cleanSheet: aScore === 0,
-      redCards: (seed === 7 ? 1 : 0),
-      yellowCards: (seed % 3),
-      ownGoals: (seed === 19 ? 1 : 0)
-    },
-    awayEvents: {
-      goalsScored: aScore,
-      cleanSheet: hScore === 0,
-      redCards: (seed === 13 ? 1 : 0),
-      yellowCards: ((seed + 1) % 3),
-      ownGoals: 0
-    },
-
-    updatedAt: new Date().toISOString()
-  };
-}
-
-/**
- * Firestore ထဲသို့ အကုန်မောင်းထည့်ခြင်း
- */
-async function seedAllFixtures() {
-  console.log("🚀 TW Fantasy — ပွဲစဉ် ၃၈၀ စလုံး (GW 1 မှ 38 အထိ) စတင်ဖန်တီးနေပါသည်...");
-  const fixtures = generate380Fixtures();
-  console.log(`✅ စုစုပေါင်းပွဲစဉ်: ${fixtures.length} ပွဲ တွက်ချက်ပြီးပါပြီ။`);
-
-  // ၁။ System Game Settings Document သတ်မှတ်ခြင်း (Default: GW 8)
-  console.log("⚙️  Game Config (Current Gameweek: 8) သတ်မှတ်နေပါသည်...");
-  const configRef = doc(db, "settings", "gameConfig");
-  const configBatch = writeBatch(db);
-  configBatch.set(configRef, {
-    currentGW: 8,
-    currentSeason: "2026/27",
-    deadline: new Date(Date.UTC(2026, 9, 24, 12, 30, 0)).toISOString(),
-    status: "OPEN",
-    chipsActivePeriod: "GW1_19",
-    totalGameweeks: 38,
-    updatedAt: new Date().toISOString()
-  });
-  await configBatch.commit();
-  console.log("✅ Game Config သွင်းပြီးပါပြီ။");
-
-  // ၂။ Fixtures ၃၈၀ ကို Batch (၁၀၀ ပွဲစီ) ခွဲသွင်းခြင်း
-  const chunkSize = 100;
-  for (let i = 0; i < fixtures.length; i += chunkSize) {
-    const chunk = fixtures.slice(i, i + chunkSize);
-    const batch = writeBatch(db);
-
-    chunk.forEach(fixture => {
-      const docRef = doc(db, "fixtures", fixture.id);
-      batch.set(docRef, fixture);
-    });
-
-    await batch.commit();
-    console.log(`📦 Fixtures ${i + 1} မှ ${Math.min(i + chunkSize, fixtures.length)} အထိ သွင်းပြီးပါပြီ။`);
-  }
-
-  console.log("🎉 အောင်မြင်ပါသည်! GW 1 မှ 38 အထိ ပွဲစဉ် ၃၈၀ လုံး ရလဒ်များနှင့်တကွ Firestore ထဲ အပြည့်အစုံ ရောက်ရှိသွားပါပြီ။");
-}
-
-seedAllFixtures()
-  .then(() => {
-    console.log("🏁 Process Finished Successfully.");
+    console.log(`🎉 [SUCCESS] FotMob ၂၀၂၆-၂၀၂၇ ရာသီ ပွဲစဉ်ပေါင်း (${count}) ခုလုံး Firestore ထဲ အမှန်ရောက်ရှိသွားပါပြီ!`);
     process.exit(0);
-  })
-  .catch((err) => {
-    console.error("❌ Seeding Failed with Error:", err);
+
+  } catch (err) {
+    console.error("❌ FotMob Sync Error:", err.message);
     process.exit(1);
-  });
+  }
+}
+
+syncFotMobToFirestore();
