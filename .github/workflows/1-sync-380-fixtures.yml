@@ -1,0 +1,27 @@
+name: "1 - Sync 380 Fixtures and Set Current GW"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  sync-all-fixtures:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Packages
+        run: |
+          npm install firebase-admin axios
+
+      - name: Run 380 Fixtures Sync
+        env:
+          FIREBASE_SERVICE_ACCOUNT: "${{ secrets.FIREBASE_SERVICE_ACCOUNT_TW_TEAM_FANTASY }}"
+        run: |
+          node scripts/sync380Fixtures.js
